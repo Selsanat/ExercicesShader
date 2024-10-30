@@ -14,7 +14,10 @@ public class TerrainGenerator : MonoBehaviour
     private int _tileCount;
     private Color[] _pixels;
     private Vector3[] _verticesPositions;
+    private Vector2[] _texCoords;
     private int[] _triangles;
+    public Gradient _gradient;
+    private Color[] _vertexColors;
 
     private void Start()
     {
@@ -31,6 +34,8 @@ public class TerrainGenerator : MonoBehaviour
         _triangles = new int[_tileCount * 2 * 3];
         computeVerticesPositions();
         computeTriangles();
+        CalculateTextureCoords();
+        CalculateMeshColor();
 
         Mesh mesh = new Mesh();
         _meshFilter.mesh = mesh;
@@ -38,6 +43,8 @@ public class TerrainGenerator : MonoBehaviour
 
         mesh.vertices = _verticesPositions;
         mesh.triangles = _triangles;
+        mesh.uv = _texCoords;
+        mesh.colors = _vertexColors;
 
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
@@ -45,7 +52,31 @@ public class TerrainGenerator : MonoBehaviour
 
     }
 
-    private void computeTriangles()
+    private void CalculateMeshColor()
+    {
+        _vertexColors = new Color[_verticesPositions.Length];
+        for (int i = 0; i < _width; i++)
+        {
+            for (int j = 0; j < _height; j++)
+            {
+                _vertexColors[Index2DTo1D(i, j)] = _gradient.Evaluate(Index2DTo1D(i, j)/(float)_vertexCount);
+            }
+        }
+    }
+
+    private void CalculateTextureCoords()
+    {
+        _texCoords = new Vector2[_verticesPositions.Length];
+        for (int i = 0; i < _width; i++)
+        {
+            for (int j = 0; j < _height; j++)
+            {
+                _texCoords[Index2DTo1D(i, j)] = PixelCoordsToLinear(new Vector2(i, j));
+            }
+        }
+    }
+
+        private void computeTriangles()
     {
         for (int i = 0; i < _width - 1; i++)
         {
@@ -72,6 +103,11 @@ public class TerrainGenerator : MonoBehaviour
                 _verticesPositions[Index2DTo1D(i, j)] = Index2DToPosition(new Vector2(i, j));
             }
         }
+    }
+
+    private Vector2 PixelCoordsToLinear(Vector2 pixelCoords)
+    {
+        return new Vector2(pixelCoords.x / _width, pixelCoords.y / _height);
     }
 
     private int TileIndexTo1D(int i, int j)
